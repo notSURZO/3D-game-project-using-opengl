@@ -1,12 +1,16 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
+import math
 
 # Camera-related variables
-camera_pos = (0,500,500)
+theta = math.pi/2
+r = 400
+z = 500
+camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
 fovY = 120  # Field of view
-GRID_LENGTH = 600  # Length of grid lines
+# GRID_LENGTH = 600  # Length of grid lines
 rand_var = 423
 
 
@@ -34,6 +38,69 @@ def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glMatrixMode(GL_PROJECTION)
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
+
+
+def draw_grid():
+    initial_x = 600
+    initial_y = 600
+    GRID_x = initial_x
+    GRID_y = initial_y
+    length = (initial_x+initial_y) / 13
+    color = True
+    glBegin(GL_QUADS)
+    for i in range(13):
+        for i in range(13):
+            if not color :
+                glColor3f(0.7, 0.5, 0.95)
+            else:
+                glColor3f(1, 1, 1)
+            glVertex3f(-GRID_x, GRID_y, 0)
+            glVertex3f(-GRID_x + length, GRID_y, 0)
+            glVertex3f(-GRID_x + length, GRID_y - length, 0)
+            glVertex3f(-GRID_x, GRID_y -  length, 0)
+            
+            GRID_x -= length    # ekhane length - korsi karon, jokhon glVertex3f e nitesi tokhon negative GROD_x nitesi (Example: GRID_x = 600,  jokhon vertext e nei tokhon -600 hishebe nei. As a result if i subtract the length, 600 - length = 509, jeta hoye jabe vertex e -509 (which will be more left as more left means more positive))
+            color = not color
+        GRID_x = initial_x
+        GRID_y -= length 
+    
+    #boundary walls
+    glColor3f(0, 1, 0)
+    glVertex3f(-initial_x, initial_y, 0)
+    glVertex3f(-initial_x, initial_y - (13 * length), 0)
+    glVertex3f(-initial_x,initial_y - (13*length), 60)
+    glVertex3f(-initial_x, initial_y, 60)        
+    
+    glColor3f(0, 0, 1)
+    glVertex3f(initial_x, initial_y, 0)
+    glVertex3f(initial_x, initial_y - (13 * length), 0)
+    glVertex3f(initial_x,initial_y - (13*length), 60)
+    glVertex3f(initial_x, initial_y, 60)    
+
+    
+    glColor3f(67/255, 234/255, 240/255)
+    glVertex3f(-initial_x, initial_y - (13 * length), 0)
+    glVertex3f(-initial_x + (13 * length), initial_y - (13 * length)  , 0)
+    glVertex3f(-initial_x + (13 * length),initial_y - (13 * length), 60)
+    glVertex3f(-initial_x, initial_y - (13 * length), 60) 
+    
+    glColor3f(1,1,1)
+    glVertex3f(-initial_x, initial_y , 0)
+    glVertex3f(-initial_x + (13 * length), initial_y   , 0)
+    glVertex3f(-initial_x + (13 * length),initial_y , 60)
+    glVertex3f(-initial_x, initial_y , 60)       
+    glEnd()
+    
+
+
+
+
+
+
+
+
+
+
 
 
 def draw_shapes():
@@ -86,26 +153,29 @@ def keyboardListener(key, x, y):
 
 
 def specialKeyListener(key, x, y):
-    """
-    Handles special key inputs (arrow keys) for adjusting the camera angle and height.
-    """
-    global camera_pos
+    global theta,r,z, camera_pos
+
+    
+
     x, y, z = camera_pos
+    
     # Move camera up (UP arrow key)
-    # if key == GLUT_KEY_UP:
+    if key == GLUT_KEY_UP and z < 1000:
+        z += 10
 
     # # Move camera down (DOWN arrow key)
-    # if key == GLUT_KEY_DOWN:
+    if key == GLUT_KEY_DOWN and z > 10:
+        z-=10
 
     # moving camera left (LEFT arrow key)
     if key == GLUT_KEY_LEFT:
-        x -= 1  # Small angle decrement for smooth movement
+        theta += 0.1  # Small angle decrement for smooth movement
 
     # moving camera right (RIGHT arrow key)
     if key == GLUT_KEY_RIGHT:
-        x += 1  # Small angle increment for smooth movement
+       theta -= 0.1  # Small angle increment for smooth movement
 
-    camera_pos = (x, y, z)
+    camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
 
 def mouseListener(button, state, x, y):
@@ -120,6 +190,7 @@ def mouseListener(button, state, x, y):
 
 
 def setupCamera():
+    global camera_pos
     """
     Configures the camera's projection and view settings.
     Uses a perspective projection and positions the camera to look at the target.
@@ -127,10 +198,11 @@ def setupCamera():
     glMatrixMode(GL_PROJECTION)  # Switch to projection matrix mode
     glLoadIdentity()  # Reset the projection matrix
     # Set up a perspective projection (field of view, aspect ratio, near clip, far clip)
-    gluPerspective(fovY, 1.25, 0.1, 1500) # Think why aspect ration is 1.25?
+    gluPerspective(120, 1.25, 1, 1500) # Think why aspect ration is 1.25?
     glMatrixMode(GL_MODELVIEW)  # Switch to model-view matrix mode
     glLoadIdentity()  # Reset the model-view matrix
 
+    
     # Extract camera position and look-at target
     x, y, z = camera_pos
     # Position the camera and set its orientation
@@ -162,37 +234,40 @@ def showScreen():
     setupCamera()  # Configure camera perspective
 
     # Draw a random points
-    glPointSize(20)
-    glBegin(GL_POINTS)
-    glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
-    glEnd()
+    # glPointSize(20)
+    # glBegin(GL_POINTS)
+    # glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
+    # glVertex3f(0, GRID_LENGTH, 0)
+    # glEnd()
 
-    # Draw the grid (game floor)
-    glBegin(GL_QUADS)
     
-    glColor3f(1, 1, 1)
-    glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
-    glVertex3f(0, GRID_LENGTH, 0)
-    glVertex3f(0, 0, 0)
-    glVertex3f(-GRID_LENGTH, 0, 0)
+    draw_grid()
+    # # Draw the grid (game floor)
+    # glBegin(GL_QUADS)
+    
+    # glColor3f(1, 1, 1)
+    # glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
+    # glVertex3f(0, GRID_LENGTH, 0)
+    # glVertex3f(0, 0, 0)
+    # glVertex3f(-GRID_LENGTH, 0, 0)
 
-    glVertex3f(GRID_LENGTH, -GRID_LENGTH, 0)
-    glVertex3f(0, -GRID_LENGTH, 0)
-    glVertex3f(0, 0, 0)
-    glVertex3f(GRID_LENGTH, 0, 0)
+    # # glVertex3f(GRID_LENGTH, -GRID_LENGTH, 0)
+    # # glVertex3f(0, -GRID_LENGTH, 0)
+    # # glVertex3f(0, 0, 0)
+    # # glVertex3f(GRID_LENGTH, 0, 0)
 
 
-    glColor3f(0.7, 0.5, 0.95)
-    glVertex3f(-GRID_LENGTH, -GRID_LENGTH, 0)
-    glVertex3f(-GRID_LENGTH, 0, 0)
-    glVertex3f(0, 0, 0)
-    glVertex3f(0, -GRID_LENGTH, 0)
+    # glColor3f(0.7, 0.5, 0.95)
+    # # glVertex3f(-GRID_LENGTH, -GRID_LENGTH, 0)
+    # # glVertex3f(-GRID_LENGTH, 0, 0)
+    # # glVertex3f(0, 0, 0)
+    # # glVertex3f(0, -GRID_LENGTH, 0)
 
-    glVertex3f(GRID_LENGTH, GRID_LENGTH, 0)
-    glVertex3f(GRID_LENGTH, 0, 0)
-    glVertex3f(0, 0, 0)
-    glVertex3f(0, GRID_LENGTH, 0)
-    glEnd()
+    # glVertex3f(GRID_LENGTH, GRID_LENGTH, 0)
+    # glVertex3f(GRID_LENGTH, 0, 0)
+    # glVertex3f(0, 0, 0)
+    # glVertex3f(0, GRID_LENGTH, 0)
+    # glEnd()
 
     # Display game info text at a fixed screen position
     draw_text(10, 770, f"A Random Fixed Position Text")
