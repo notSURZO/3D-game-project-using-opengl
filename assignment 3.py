@@ -9,11 +9,15 @@ r = 400
 z = 500
 camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
+
+player_pos = (0 - 46.1538462, 0 + 46.1538462, 0)
 fovY = 120  # Field of view
 # GRID_LENGTH = 600  # Length of grid lines
 rand_var = 423
 
 
+
+first_person_mode = False
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glColor3f(1,1,1)
     glMatrixMode(GL_PROJECTION)
@@ -41,11 +45,13 @@ def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
 
 
 def draw_grid():
+
     initial_x = 600
     initial_y = 600
     GRID_x = initial_x
     GRID_y = initial_y
     length = (initial_x+initial_y) / 13
+
     color = True
     glBegin(GL_QUADS)
     for i in range(13):
@@ -104,26 +110,77 @@ def draw_grid():
 
 
 def draw_shapes():
+    global player_pos
+    x,y,z = player_pos
+    
+    #body
+    glPushMatrix()
+    glColor3f(50/255, 168/255, 82/255)
+    glTranslatef(x, y, z+50)
+    glScale(0.7,0.4, 1)
+    glutSolidCube(50)
+    glPopMatrix()
+    
 
+   
+    #legs
     glPushMatrix()  # Save the current matrix state
-    glColor3f(1, 0, 0)
-    glTranslatef(0, 0, 0)  
-    glutSolidCube(60) # Take cube size as the parameter
-    glTranslatef(0, 0, 100) 
-    glColor3f(0, 1, 0)
-    glutSolidCube(60) 
+    glColor3f(0, 0, 1)
+    glTranslatef(x+10, y, z)  
+    gluCylinder(gluNewQuadric(), 5, 10, 30, 10, 10) 
+    glPopMatrix()
+    
+    
+    glPushMatrix()
+    glTranslatef(x - 10, y, z)  
+    gluCylinder(gluNewQuadric(), 5, 10, 30, 10, 10) 
+    glPopMatrix()
+    
+    
+        
+    #Hands
+    glPushMatrix()  # Save the current matrix state
+    glColor3f(247/255, 230/255, 190/255)
+    glTranslatef(x+18, y-10, z + 65) 
+    glRotatef(90, 1, 0, 0)
+    gluCylinder(gluNewQuadric(), 10, 5, 30, 10, 10) 
+    glPopMatrix()
+    
+    glPushMatrix()  # Save the current matrix state
+    glColor3f(247/255, 230/255, 190/255)
+    glTranslatef(x-18, y-10, z + 65) 
+    glRotatef(90, 1, 0, 0)
+    gluCylinder(gluNewQuadric(), 10, 5, 30, 10, 10) 
+    glPopMatrix()
+        
+    
+    
+    
+    
+    
+    #head
+    glPushMatrix()
+    glColor3f(0, 0, 0)
+    glTranslatef(x, y, z+85)
+    gluSphere(gluNewQuadric(), 10, 10, 10)
+    glPopMatrix()
+    
+    
+    
+    
+    
+    
+    # glColor3f(1, 1, 0)
+    # gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)  # parameters are: quadric, base radius, top radius, height, slices, stacks
+    # glTranslatef(100, 0, 100) 
+    # glRotatef(90, 0, 1, 0)  # parameters are: angle, x, y, z
+    # gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)
 
-    glColor3f(1, 1, 0)
-    gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)  # parameters are: quadric, base radius, top radius, height, slices, stacks
-    glTranslatef(100, 0, 100) 
-    glRotatef(90, 0, 1, 0)  # parameters are: angle, x, y, z
-    gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)
+    # glColor3f(0, 1, 1)
+    # glTranslatef(300, 0, 100) 
+    # gluSphere(gluNewQuadric(), 80, 10, 10)  # parameters are: quadric, radius, slices, stacks
 
-    glColor3f(0, 1, 1)
-    glTranslatef(300, 0, 100) 
-    gluSphere(gluNewQuadric(), 80, 10, 10)  # parameters are: quadric, radius, slices, stacks
-
-    glPopMatrix()  # Restore the previous matrix state
+      # Restore the previous matrix state
 
 
 def keyboardListener(key, x, y):
@@ -169,16 +226,17 @@ def specialKeyListener(key, x, y):
 
     # moving camera left (LEFT arrow key)
     if key == GLUT_KEY_LEFT:
-        theta += 0.1  # Small angle decrement for smooth movement
+        theta += 0.05  # Small angle decrement for smooth movement
 
     # moving camera right (RIGHT arrow key)
     if key == GLUT_KEY_RIGHT:
-       theta -= 0.1  # Small angle increment for smooth movement
+       theta -= 0.05  # Small angle increment for smooth movement
 
     camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
 
 def mouseListener(button, state, x, y):
+    global first_person_mode
     """
     Handles mouse inputs for firing bullets (left click) and toggling camera mode (right click).
     """
@@ -186,7 +244,8 @@ def mouseListener(button, state, x, y):
         # if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
 
         # # Right mouse button toggles camera tracking mode
-        # if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
+    if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
+        first_person_mode = not first_person_mode
 
 
 def setupCamera():
@@ -234,11 +293,7 @@ def showScreen():
     setupCamera()  # Configure camera perspective
 
     # Draw a random points
-    # glPointSize(20)
-    # glBegin(GL_POINTS)
-    # glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
-    # glVertex3f(0, GRID_LENGTH, 0)
-    # glEnd()
+ 
 
     
     draw_grid()
