@@ -2,6 +2,7 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math
+import random
 
 # Camera-related variables
 theta = math.pi/2
@@ -9,8 +10,8 @@ r = 400
 camera_z = 500
 camera_pos = (r* math.cos(theta), r * math.sin(theta), camera_z)
 player_rotation_angle = 0
-
-score = 10
+player_life = 5
+missed = 0
 player_pos = [0 , 0 , 0]
 
 bullet_list = []
@@ -18,8 +19,18 @@ bullet_speed = 10
 fovY = 120  # Field of view
 # GRID_LENGTH = 600  # Length of grid lines
 rand_var = 423
+enemies_list = []
+time = 0.0
 
-fire = False
+for i in range(5):
+    x = random.uniform(-590,590)
+    y = random.uniform(-590,590)
+    z = 50
+    enemies_list.append([x,y,z])
+
+enemy_speed = 0.1
+
+game_over = False
 
 first_person_mode = False
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
@@ -121,21 +132,38 @@ def draw_bullets(x,y,z, x_dir, y_dir):
     glPopMatrix()
     
     
+def draw_enemies(x,y,z):
+    global time
+    glPushMatrix()
+    glColor3f(1,0,0)
+    glTranslatef(x,y,z)
+    pulse_scale = 0.8 + 0.3 * math.sin(2.0 * time)  # Scale between 0.7 and 1.3
+    glScalef(pulse_scale, pulse_scale, pulse_scale)
+    gluSphere(gluNewQuadric(), 50, 10, 10)
     
+    glPopMatrix()
     
-    
+    glPushMatrix()
+    glColor3f(0,0,0)
+    glTranslatef(x,y,z+25)
+    glScalef(pulse_scale, pulse_scale, pulse_scale)
+    gluSphere(gluNewQuadric(), 20, 10, 10)
+    glPopMatrix()
 
 
 def draw_player():
-    global player_pos, player_rotation_angle
+    global player_pos, player_rotation_angle, game_over, player_life
     x,y,z = player_pos
-    
+
     glPushMatrix()
     glTranslatef(x, y, z)
 
     glTranslatef(- 46.1538462,46.1538462, 0)
     glRotatef(player_rotation_angle, 0, 0, 1)
     
+    if missed > 10 or player_life <= 0 :
+        glRotatef(-90,1,0,0)
+        game_over = True
     #body
     glPushMatrix()
     glColor3f(50/255, 168/255, 82/255)
@@ -223,34 +251,34 @@ def draw_player():
 
 
 def keyboardListener(key, x, y):
-    global player_pos, player_rotation_angle
+    global player_pos, player_rotation_angle, game_over
     x, y, z = player_pos
     speed = 15 
     x_new, y_new = x, y
     angle_rad = math.radians(player_rotation_angle)
 
     # Move forward (W key)
-    if key == b'w':
+    if key == b'w' and game_over == False:
         
         x_new += speed * math.sin(angle_rad)  
         y_new -= speed * math.cos(angle_rad)  
         
 
     # Move backward (S key)
-    if key == b's':
+    if key == b's'  and game_over == False:
 
         x_new -= speed * math.sin(angle_rad)
         y_new += speed * math.cos(angle_rad)
         
 
     # Rotate left (A key)
-    if key == b'a':
+    if key == b'a'  and game_over == False:
         player_rotation_angle += 5
 
 
 
     # Rotate right (D key)
-    if key == b'd':
+    if key == b'd'  and game_over == False:
         player_rotation_angle -= 5
   
     x_new = max(-600, min(600, x_new))
@@ -293,30 +321,10 @@ def specialKeyListener(key, x, y):
         camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
 
-# def mouseListener(button, state, x, y):
-#     global first_person_mode, camera_pos, player_pos, fire, player_rotation_angle, bullet_list
-#     """
-#     Handles mouse inputs for firing bullets (left click) and toggling camera mode (right click).
-#     """
-#         # # Left mouse button fires a bullet
-  
-#     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
-        
-#         x,y, z = player_pos
-#         bullet_x = x - 46.1538462 + math.sin(math.radians(player_rotation_angle)) * (-45)
-#         bullet_y = y + 46.1538462 + math.cos(math.radians(player_rotation_angle)) * (-45)
-#         bullet_z = z + 65
-#         x_dir = math.sin(math.radians(player_rotation_angle))
-#         y_dir = -math.cos(math.radians(player_rotation_angle))
-#         bullet_list.append([bullet_x,bullet_y,bullet_z, x_dir, y_dir])
-        
 
-#         # # Right mouse button toggles camera tracking mode
-#     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
-#         first_person_mode = not first_person_mode
         
 def mouseListener(button, state, x, y):
-    global first_person_mode, camera_pos, player_pos, fire, player_rotation_angle, bullet_list
+    global first_person_mode, camera_pos, player_pos, player_rotation_angle, bullet_list
     """
     Handles mouse inputs for firing bullets (left click) and toggling camera mode (right click).
     """
@@ -329,20 +337,11 @@ def mouseListener(button, state, x, y):
    
 
         # Base position of the player after offset
-        x = x  -46.1538462
-        y = y + 46.1538462 
-
-        # Gun position relative to the player (from draw_player: glTranslatef(0, -10, 65))
-
-
-        # Rotate the gun offset according to player_rotation_angle
-        # The gun's position in the player's local coordinate system after rotation
-        rotated_gun_x = 0 * math.cos(math.radians(player_rotation_angle)) - (-60) * math.sin(math.radians(player_rotation_angle))
-        rotated_gun_y = 0 * math.sin(math.radians(player_rotation_angle)) + (-60) * math.cos(math.radians(player_rotation_angle))
-
+  
+   
         # Calculate bullet starting position (from the gun's tip)
-        bullet_x = x + rotated_gun_x
-        bullet_y = y + rotated_gun_y
+        bullet_x = x - 46.1538462 + 0 * math.cos(math.radians(player_rotation_angle)) - (-60) * math.sin(math.radians(player_rotation_angle))
+        bullet_y = y + 46.1538462  + 0 * math.sin(math.radians(player_rotation_angle)) + (-60) * math.cos(math.radians(player_rotation_angle))
         bullet_z = z + 65
 
         # Bullet direction (same as player's facing direction)
@@ -393,35 +392,75 @@ def setupCamera():
 
 
 def idle():
-    global bullet_speed, score, bullet_list
+    global player_life, time, enemies_list, bullet_speed, missed, bullet_list, player_pos, enemy_speed, bullet_hit
     """
     Idle function that runs continuously:
     - Triggers screen redraw for real-time updates.
     """
     # Ensure the screen updates with the latest changes
-
-        
+    enemy_hitbox = 50
+    player_hitbox = 10
+    time += 0.02  
     GRID_LIMIT = 600
     new_bullet_list = []
+    temp_enemies_list1 = enemies_list[:] 
     for bullet in bullet_list:
         x, y, z, dir_x, dir_y = bullet
         x += dir_x * bullet_speed
         y += dir_y * bullet_speed
-        if -GRID_LIMIT <= x <= GRID_LIMIT and -GRID_LIMIT <= y <= GRID_LIMIT:
+        bullet_hit = False
+        for enemy in temp_enemies_list1[:]:  # Iterate over copy to allow safe removal
+            enemy_x, enemy_y, enemy_z = enemy
+            distance = math.sqrt((x - enemy_x)**2 + (y - enemy_y)**2)
+            if distance <= enemy_hitbox:
+                # Bullet hits enemy: remove both and spawn new enemy
+                temp_enemies_list1.remove(enemy)
+                bullet_hit = True
+                # Spawn new enemy at random position
+                new_x = random.uniform(-590, 590)
+                new_y = random.uniform(-590, 590)
+                temp_enemies_list1.append([new_x, new_y, 50])
+                break  # Stop checking this bullet against other enemies
+        # Add bullet to new list if it didn't hit an enemy and is within grid
+        if not bullet_hit and -GRID_LIMIT <= x <= GRID_LIMIT and -GRID_LIMIT <= y <= GRID_LIMIT:
             new_bullet_list.append([x, y, z, dir_x, dir_y])
-        else:
-            score -= 10
-            print(f"Score: {score}")
+        elif not bullet_hit:
+            missed += 1
     bullet_list = new_bullet_list
-            
-    
-    
-    
+    enemies_list = temp_enemies_list1
+    player_x, player_y, _ = player_pos
+    new_enemies_list = []
+    for enemy in enemies_list:
+        enemy_x, enemy_y, enemy_z = enemy
+        # Calculate distance to player
+        distance = math.sqrt((player_x - enemy_x)**2 + (player_y - enemy_y)**2)
+        # Check for collision
+        if distance > player_hitbox:
+            # Move enemy towards player if no collision
+            dx = player_x - enemy_x
+            dy = player_y - enemy_y
+            if distance > 0:  # Avoid division by zero
+                dir_x = dx / distance
+                dir_y = dy / distance
+                enemy_x += dir_x * enemy_speed
+                enemy_y += dir_y * enemy_speed
+                enemy_x = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_x))
+                enemy_y = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_y))
+                new_enemies_list.append([enemy_x, enemy_y, enemy_z])
+        else:
+            # Enemy touches player: remove enemy and spawn a new one
+            new_x = random.uniform(-590, 590)
+            new_y = random.uniform(-590, 590)
+            new_enemies_list.append([new_x, new_y, 50])
+            player_life -= 1
+        # If distance <= COLLISION_RADIUS, enemy vanishes (not added to new_enemies_list)
+    enemies_list = new_enemies_list
+
     glutPostRedisplay()
 
 
 def showScreen():
-    global fire
+    global missed, game_over, enemies_list
     """
     Display function to render the game scene:
     - Clears the screen and sets up the camera.
@@ -445,12 +484,15 @@ def showScreen():
     draw_text(10, 740, f"See how the position and variable change?: {rand_var}")
 
     
-    draw_player()
     
-    for i in bullet_list:
-        draw_bullets(i[0],i[1], i[2], i[3], i[4])
+    draw_player()
+    if game_over == False:
+        for i in bullet_list:
+            draw_bullets(i[0],i[1], i[2], i[3], i[4])
 
-        
+    
+        for enemy in enemies_list:
+            draw_enemies(enemy[0], enemy[1], enemy[2])   
     
 
     # Swap buffers for smooth rendering (double buffering)
