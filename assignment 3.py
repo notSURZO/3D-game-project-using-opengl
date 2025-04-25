@@ -8,9 +8,13 @@ theta = math.pi/2
 r = 400
 z = 500
 camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
+player_rotation_angle = 0
 
 
-player_pos = (0 - 46.1538462, 0 + 46.1538462, 0)
+player_pos = [0 , 0 , 0]
+
+trans_y = 0
+
 fovY = 120  # Field of view
 # GRID_LENGTH = 600  # Length of grid lines
 rand_var = 423
@@ -103,20 +107,23 @@ def draw_grid():
 
 
 
-
-
-
-
-
-
-def draw_shapes():
-    global player_pos
+def draw_player():
+    global player_pos, player_rotation_angle,trans_y
     x,y,z = player_pos
+    
+    glPushMatrix()
+    glTranslatef(x, y, z)
+
+    glTranslatef(- 46.1538462,46.1538462, 0)
+    glRotatef(player_rotation_angle, 0, 0, 1)
     
     #body
     glPushMatrix()
     glColor3f(50/255, 168/255, 82/255)
-    glTranslatef(x, y, z+50)
+    
+
+    
+    glTranslatef(0, 0, 50)
     glScale(0.7,0.4, 1)
     glutSolidCube(50)
     glPopMatrix()
@@ -126,13 +133,16 @@ def draw_shapes():
     #legs
     glPushMatrix()  # Save the current matrix state
     glColor3f(0, 0, 1)
-    glTranslatef(x+10, y, z)  
+    glTranslatef(10, 0, 0)  
     gluCylinder(gluNewQuadric(), 5, 10, 30, 10, 10) 
     glPopMatrix()
     
     
+    
+    
+    
     glPushMatrix()
-    glTranslatef(x - 10, y, z)  
+    glTranslatef( - 10, 0, 0)  
     gluCylinder(gluNewQuadric(), 5, 10, 30, 10, 10) 
     glPopMatrix()
     
@@ -141,63 +151,88 @@ def draw_shapes():
     #Hands
     glPushMatrix()  # Save the current matrix state
     glColor3f(247/255, 230/255, 190/255)
-    glTranslatef(x+18, y-10, z + 65) 
+
+    
+    glTranslatef(18, -10, 65) 
     glRotatef(90, 1, 0, 0)
-    gluCylinder(gluNewQuadric(), 10, 5, 30, 10, 10) 
+    gluCylinder(gluNewQuadric(), 10, 5, 20, 10, 10) 
     glPopMatrix()
+    
+    
+    
     
     glPushMatrix()  # Save the current matrix state
     glColor3f(247/255, 230/255, 190/255)
-    glTranslatef(x-18, y-10, z + 65) 
+  
+    
+    glTranslatef(-18, -10, 65) 
     glRotatef(90, 1, 0, 0)
-    gluCylinder(gluNewQuadric(), 10, 5, 30, 10, 10) 
+    gluCylinder(gluNewQuadric(), 10, 5, 20, 10, 10) 
     glPopMatrix()
         
     
     
+    #gun
+    glPushMatrix()  # Save the current matrix state
+    glColor3f(191/255, 191/255, 191/255)
+
+    
+    glTranslatef(0, -10,  65) 
+    glRotatef(90, 1, 0, 0)
+    gluCylinder(gluNewQuadric(), 10, 5, 35, 10, 10) 
+    glPopMatrix()
+        
     
     
     
     #head
     glPushMatrix()
     glColor3f(0, 0, 0)
-    glTranslatef(x, y, z+85)
+
+    glTranslatef(0, 0, 85)
     gluSphere(gluNewQuadric(), 10, 10, 10)
     glPopMatrix()
     
     
-    
-    
-    
-    
-    # glColor3f(1, 1, 0)
-    # gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)  # parameters are: quadric, base radius, top radius, height, slices, stacks
-    # glTranslatef(100, 0, 100) 
-    # glRotatef(90, 0, 1, 0)  # parameters are: angle, x, y, z
-    # gluCylinder(gluNewQuadric(), 40, 5, 150, 10, 10)
 
-    # glColor3f(0, 1, 1)
-    # glTranslatef(300, 0, 100) 
-    # gluSphere(gluNewQuadric(), 80, 10, 10)  # parameters are: quadric, radius, slices, stacks
+    glPopMatrix()
 
-      # Restore the previous matrix state
+
+
+
+
 
 
 def keyboardListener(key, x, y):
-    """
-    Handles keyboard inputs for player movement, gun rotation, camera updates, and cheat mode toggles.
-    """
-    # # Move forward (W key)
-    # if key == b'w':  
+    global player_pos, player_rotation_angle
+    x, y, z = player_pos
+    speed = 5  # Movement speed
 
-    # # Move backward (S key)
-    # if key == b's':
+    # Convert rotation angle to radians (since player_rotation_angle is in degrees)
+    angle_rad = math.radians(player_rotation_angle)
 
-    # # Rotate gun left (A key)
-    # if key == b'a':
+    # Move forward (W key)
+    if key == b'w':
+        # Forward direction is along local y-axis after rotation
+        x += speed * math.sin(angle_rad)  # y-axis in world space after rotation
+        y -= speed * math.cos(angle_rad)  # x-axis in world space after rotation
+        player_pos = [x, y, z]
 
-    # # Rotate gun right (D key)
-    # if key == b'd':
+    # Move backward (S key)
+    if key == b's':
+        # Backward is opposite of forward
+        x -= speed * math.sin(angle_rad)
+        y += speed * math.cos(angle_rad)
+        player_pos = [x, y, z]
+
+    # Rotate left (A key)
+    if key == b'a':
+        player_rotation_angle += 2
+
+    # Rotate right (D key)
+    if key == b'd':
+        player_rotation_angle -= 2
+        
 
     # # Toggle cheat mode (C key)
     # if key == b'c':
@@ -216,27 +251,27 @@ def specialKeyListener(key, x, y):
 
     x, y, z = camera_pos
     
-    # Move camera up (UP arrow key)
-    if key == GLUT_KEY_UP and z < 1000:
-        z += 10
+    if not first_person_mode :    # Move camera up (UP arrow key)
+        if key == GLUT_KEY_UP and z < 1000:
+            z += 10
 
-    # # Move camera down (DOWN arrow key)
-    if key == GLUT_KEY_DOWN and z > 10:
-        z-=10
+        # # Move camera down (DOWN arrow key)
+        if key == GLUT_KEY_DOWN and z > 10:
+            z-=10
 
-    # moving camera left (LEFT arrow key)
-    if key == GLUT_KEY_LEFT:
-        theta += 0.05  # Small angle decrement for smooth movement
+        # moving camera left (LEFT arrow key)
+        if key == GLUT_KEY_LEFT:
+            theta += 0.05  # Small angle decrement for smooth movement
 
-    # moving camera right (RIGHT arrow key)
-    if key == GLUT_KEY_RIGHT:
-       theta -= 0.05  # Small angle increment for smooth movement
+        # moving camera right (RIGHT arrow key)
+        if key == GLUT_KEY_RIGHT:
+            theta -= 0.05  # Small angle increment for smooth movement
 
-    camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
+        camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
 
 def mouseListener(button, state, x, y):
-    global first_person_mode
+    global first_person_mode, camera_pos, player_pos
     """
     Handles mouse inputs for firing bullets (left click) and toggling camera mode (right click).
     """
@@ -246,10 +281,11 @@ def mouseListener(button, state, x, y):
         # # Right mouse button toggles camera tracking mode
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
         first_person_mode = not first_person_mode
+        
 
 
 def setupCamera():
-    global camera_pos
+    global camera_pos,player_pos, first_person_mode
     """
     Configures the camera's projection and view settings.
     Uses a perspective projection and positions the camera to look at the target.
@@ -261,13 +297,20 @@ def setupCamera():
     glMatrixMode(GL_MODELVIEW)  # Switch to model-view matrix mode
     glLoadIdentity()  # Reset the model-view matrix
 
+    if not first_person_mode:
+        # Extract camera position and look-at target
+        x, y, z = camera_pos
+        gluLookAt(x, y, z,  # Camera position
+                0, 0, 0,  # Look-at target
+                0, 0, 1)
+        # Position the camera and set its orientation
+    else:
+        x,y, z = player_pos 
     
-    # Extract camera position and look-at target
-    x, y, z = camera_pos
-    # Position the camera and set its orientation
-    gluLookAt(x, y, z,  # Camera position
-              0, 0, 0,  # Look-at target
-              0, 0, 1)  # Up vector (z-axis)
+        gluLookAt(x, y-2.5, z+100,  # Camera position
+                x, y-100, z+ 100,  # Look-at target
+                0, 0, 1)  # Up vector (z-axis)
+        
 
 
 def idle():
@@ -297,38 +340,13 @@ def showScreen():
 
     
     draw_grid()
-    # # Draw the grid (game floor)
-    # glBegin(GL_QUADS)
-    
-    # glColor3f(1, 1, 1)
-    # glVertex3f(-GRID_LENGTH, GRID_LENGTH, 0)
-    # glVertex3f(0, GRID_LENGTH, 0)
-    # glVertex3f(0, 0, 0)
-    # glVertex3f(-GRID_LENGTH, 0, 0)
-
-    # # glVertex3f(GRID_LENGTH, -GRID_LENGTH, 0)
-    # # glVertex3f(0, -GRID_LENGTH, 0)
-    # # glVertex3f(0, 0, 0)
-    # # glVertex3f(GRID_LENGTH, 0, 0)
-
-
-    # glColor3f(0.7, 0.5, 0.95)
-    # # glVertex3f(-GRID_LENGTH, -GRID_LENGTH, 0)
-    # # glVertex3f(-GRID_LENGTH, 0, 0)
-    # # glVertex3f(0, 0, 0)
-    # # glVertex3f(0, -GRID_LENGTH, 0)
-
-    # glVertex3f(GRID_LENGTH, GRID_LENGTH, 0)
-    # glVertex3f(GRID_LENGTH, 0, 0)
-    # glVertex3f(0, 0, 0)
-    # glVertex3f(0, GRID_LENGTH, 0)
-    # glEnd()
 
     # Display game info text at a fixed screen position
     draw_text(10, 770, f"A Random Fixed Position Text")
     draw_text(10, 740, f"See how the position and variable change?: {rand_var}")
 
-    draw_shapes()
+    
+    draw_player()
 
     # Swap buffers for smooth rendering (double buffering)
     glutSwapBuffers()
