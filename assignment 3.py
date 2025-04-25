@@ -206,32 +206,34 @@ def draw_player():
 def keyboardListener(key, x, y):
     global player_pos, player_rotation_angle
     x, y, z = player_pos
-    speed = 5  # Movement speed
+    speed = 15 
 
-    # Convert rotation angle to radians (since player_rotation_angle is in degrees)
     angle_rad = math.radians(player_rotation_angle)
 
     # Move forward (W key)
     if key == b'w':
-        # Forward direction is along local y-axis after rotation
-        x += speed * math.sin(angle_rad)  # y-axis in world space after rotation
-        y -= speed * math.cos(angle_rad)  # x-axis in world space after rotation
+        
+        x += speed * math.sin(angle_rad)  
+        y -= speed * math.cos(angle_rad)  
         player_pos = [x, y, z]
 
     # Move backward (S key)
     if key == b's':
-        # Backward is opposite of forward
+
         x -= speed * math.sin(angle_rad)
         y += speed * math.cos(angle_rad)
         player_pos = [x, y, z]
 
     # Rotate left (A key)
     if key == b'a':
-        player_rotation_angle += 2
+        player_rotation_angle += 5
+
+
 
     # Rotate right (D key)
     if key == b'd':
-        player_rotation_angle -= 2
+        player_rotation_angle -= 5
+  
         
 
     # # Toggle cheat mode (C key)
@@ -285,7 +287,7 @@ def mouseListener(button, state, x, y):
 
 
 def setupCamera():
-    global camera_pos,player_pos, first_person_mode
+    global camera_pos,player_pos, first_person_mode, player_rotation_angle
     """
     Configures the camera's projection and view settings.
     Uses a perspective projection and positions the camera to look at the target.
@@ -305,11 +307,19 @@ def setupCamera():
                 0, 0, 1)
         # Position the camera and set its orientation
     else:
-        x,y, z = player_pos 
-    
-        gluLookAt(x, y-2.5, z+100,  # Camera position
-                x, y-100, z+ 100,  # Look-at target
-                0, 0, 1)  # Up vector (z-axis)
+        
+        x, y, z = player_pos
+        x = x- 46.1538462 #Since there is always an offset (to centralize the player)
+        y = y+46.1538462
+        # Compute forward direction based on player_rotation_angle
+        theta = math.radians(player_rotation_angle)
+        forward_x = math.sin(theta)  # x-component of forward direction
+        forward_y = -math.cos(theta)  # y-component of forward direction
+        distance = 50  # Distance to look-at point
+        print(x + forward_x * distance, y + forward_y * distance, z+100)
+        gluLookAt(x, y-5, z+100,  # Camera position (head height, slightly behind)
+                  x + forward_x * distance, y + forward_y * distance, z+100,  # Look-at target
+                  0, 0, 1)  # Up vector (z-axis)
         
 
 
