@@ -6,8 +6,8 @@ import math
 # Camera-related variables
 theta = math.pi/2
 r = 400
-z = 500
-camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
+camera_z = 500
+camera_pos = (r* math.cos(theta), r * math.sin(theta), camera_z)
 player_rotation_angle = 0
 
 score = 10
@@ -78,27 +78,27 @@ def draw_grid():
     glColor3f(0, 1, 0)
     glVertex3f(-initial_x, initial_y, 0)
     glVertex3f(-initial_x, initial_y - (13 * length), 0)
-    glVertex3f(-initial_x,initial_y - (13*length), 60)
-    glVertex3f(-initial_x, initial_y, 60)        
+    glVertex3f(-initial_x,initial_y - (13*length), 100)
+    glVertex3f(-initial_x, initial_y, 100)        
     
     glColor3f(0, 0, 1)
     glVertex3f(initial_x, initial_y, 0)
     glVertex3f(initial_x, initial_y - (13 * length), 0)
-    glVertex3f(initial_x,initial_y - (13*length), 60)
-    glVertex3f(initial_x, initial_y, 60)    
+    glVertex3f(initial_x,initial_y - (13*length), 100)
+    glVertex3f(initial_x, initial_y, 100)    
 
     
     glColor3f(67/255, 234/255, 240/255)
     glVertex3f(-initial_x, initial_y - (13 * length), 0)
     glVertex3f(-initial_x + (13 * length), initial_y - (13 * length)  , 0)
-    glVertex3f(-initial_x + (13 * length),initial_y - (13 * length), 60)
-    glVertex3f(-initial_x, initial_y - (13 * length), 60) 
+    glVertex3f(-initial_x + (13 * length),initial_y - (13 * length), 100)
+    glVertex3f(-initial_x, initial_y - (13 * length), 100) 
     
     glColor3f(1,1,1)
     glVertex3f(-initial_x, initial_y , 0)
     glVertex3f(-initial_x + (13 * length), initial_y   , 0)
-    glVertex3f(-initial_x + (13 * length),initial_y , 60)
-    glVertex3f(-initial_x, initial_y , 60)       
+    glVertex3f(-initial_x + (13 * length),initial_y , 100)
+    glVertex3f(-initial_x, initial_y , 100)       
     glEnd()
     
 
