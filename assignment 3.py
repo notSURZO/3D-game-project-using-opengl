@@ -5,6 +5,7 @@ import math
 import random
 
 # Camera-related variables
+cheat_shoot_timer = 0
 theta = math.pi/2
 r = 400
 camera_z = 500
@@ -15,12 +16,16 @@ missed = 0
 player_pos = [0 , 0 , 0]
 
 bullet_list = []
-bullet_speed = 10
+bullet_speed = 5
 fovY = 120  # Field of view
 # GRID_LENGTH = 600  # Length of grid lines
 rand_var = 423
 enemies_list = []
 time = 0.0
+score = 0
+cheat_mode = False
+camera_follow_gun = False
+cheat_bullets = []
 
 for i in range(5):
     x = random.uniform(-590,590)
@@ -127,7 +132,7 @@ def draw_bullets(x,y,z, x_dir, y_dir):
     glTranslatef(x,y,z)
 
     
-    glutSolidCube(5)
+    glutSolidCube(10)
 
     glPopMatrix()
     
@@ -161,9 +166,10 @@ def draw_player():
     glTranslatef(- 46.1538462,46.1538462, 0)
     glRotatef(player_rotation_angle, 0, 0, 1)
     
-    if missed > 10 or player_life <= 0 :
+    if missed > 100 or player_life <= -100 :
         glRotatef(-90,1,0,0)
         game_over = True
+    
     #body
     glPushMatrix()
     glColor3f(50/255, 168/255, 82/255)
@@ -251,9 +257,9 @@ def draw_player():
 
 
 def keyboardListener(key, x, y):
-    global player_pos, player_rotation_angle, game_over
+    global player_pos, player_rotation_angle, game_over, cheat_mode, camera_follow_gun
     x, y, z = player_pos
-    speed = 15 
+    speed = 20
     x_new, y_new = x, y
     angle_rad = math.radians(player_rotation_angle)
 
@@ -273,23 +279,26 @@ def keyboardListener(key, x, y):
 
     # Rotate left (A key)
     if key == b'a'  and game_over == False:
-        player_rotation_angle += 5
+        player_rotation_angle += 10
 
 
 
     # Rotate right (D key)
     if key == b'd'  and game_over == False:
-        player_rotation_angle -= 5
+        player_rotation_angle -= 10
   
     x_new = max(-600, min(600, x_new))
     y_new = max(-600, min(600, y_new))
         
     player_pos = [x_new, y_new, z]
     # # Toggle cheat mode (C key)
-    # if key == b'c':
-
-    # # Toggle cheat vision (V key)
-    # if key == b'v':
+    if key == b'c' and game_over == False:
+        cheat_mode = not cheat_mode
+        if not cheat_mode:  
+            camera_follow_gun = False
+    
+    if key == b'v' and game_over == False and first_person_mode and cheat_mode:
+        camera_follow_gun = not camera_follow_gun    
 
     # # Reset the game if R key is pressed
     # if key == b'r':
@@ -355,7 +364,7 @@ def mouseListener(button, state, x, y):
         first_person_mode = not first_person_mode
 
 def setupCamera():
-    global camera_pos,player_pos, first_person_mode, player_rotation_angle
+    global camera_pos,player_pos, first_person_mode, player_rotation_angle,camera_follow_gun
     """
     Configures the camera's projection and view settings.
     Uses a perspective projection and positions the camera to look at the target.
@@ -378,89 +387,137 @@ def setupCamera():
         
         x, y, z = player_pos
         x = x- 46.1538462 #Since there is always an offset (to centralize the player)
-        y = y+46.1538462
+        y = y + 46.1538462
         # Compute forward direction based on player_rotation_angle
-        theta = math.radians(player_rotation_angle)
-        forward_x = math.sin(theta)  # x-component of forward direction
-        forward_y = -math.cos(theta)  # y-component of forward direction
-        distance = 50  # Distance to look-at point
+        
+        if cheat_mode and not camera_follow_gun:
+            # In cheat mode without camera follow: Camera is stationary, looking at a fixed point
+            gluLookAt(x, y - 5, z + 100,  # Camera position (player's head height)
+                      0, 0, z + 100,  # Look at a fixed point (e.g., origin or a point in front)
+                      0, 0, 1)  # Up vector
+        
+        else:
+            theta = math.radians(player_rotation_angle)
+            forward_x = math.sin(theta)  # x-component of forward direction
+            forward_y = -math.cos(theta)  # y-component of forward direction
+            distance = 50  # Distance to look-at point
 
-        gluLookAt(x, y-5, z+100,  # Camera position (head height, slightly behind)
-                  x + forward_x * distance, y + forward_y * distance, z+100,  # Look-at target
-                  0, 0, 1)  # Up vector (z-axis)
+            gluLookAt(x, y-5, z+100,  # Camera position (head height, slightly behind)
+                    x + forward_x * distance, y + forward_y * distance, z+100,  # Look-at target
+                    0, 0, 1)  # Up vector (z-axis)
         
 
 
 def idle():
-    global player_life, time, enemies_list, bullet_speed, missed, bullet_list, player_pos, enemy_speed, bullet_hit
+    global  cheat_bullets, cheat_shoot_timer,player_rotation_angle,game_over, player_life, time, enemies_list, bullet_speed, missed, bullet_list, player_pos, enemy_speed, bullet_hit,score
     """
     Idle function that runs continuously:
     - Triggers screen redraw for real-time updates.
     """
     # Ensure the screen updates with the latest changes
-    enemy_hitbox = 50
-    player_hitbox = 10
-    time += 0.02  
-    GRID_LIMIT = 600
-    new_bullet_list = []
-    temp_enemies_list1 = enemies_list[:] 
-    for bullet in bullet_list:
-        x, y, z, dir_x, dir_y = bullet
-        x += dir_x * bullet_speed
-        y += dir_y * bullet_speed
-        bullet_hit = False
-        for enemy in temp_enemies_list1[:]:  # Iterate over copy to allow safe removal
+    if not game_over:
+        cheat_shoot_timer += 0.09
+        if cheat_mode:  # Rotate player continuously in cheat mode
+            player_rotation_angle += 3
+            if cheat_shoot_timer >= 0.5:
+                cheat_shoot_timer = 0.0
+                px, py, pz = player_pos
+                gun_x =  px - 46.1538462 + 0 * math.cos(math.radians(player_rotation_angle)) - (-60) * math.sin(math.radians(player_rotation_angle))
+                gun_y = py + 46.1538462  + 0 * math.sin(math.radians(player_rotation_angle)) + (-60) * math.cos(math.radians(player_rotation_angle))
+                gun_z = pz + 65
+                facing_x = math.sin(math.radians(player_rotation_angle))
+                facing_y = -math.cos(math.radians(player_rotation_angle))
+                temp_enemies_list = enemies_list[:]
+                for enemy in temp_enemies_list[:]:
+                    ex, ey, ez = enemy
+                    # Vector from gun to enemy
+                    to_enemy_x = ex - gun_x
+                    to_enemy_y = ey - gun_y
+                    # Normalize the vector
+                    distance = math.sqrt(to_enemy_x**2 + to_enemy_y**2)
+                    if distance == 0:
+                        continue
+                    to_enemy_x /= distance
+                    to_enemy_y /= distance
+                    # Dot product to find angle
+                    dot = facing_x * to_enemy_x + facing_y * to_enemy_y
+                    angle = math.acos(max(-1.0, min(1.0, dot))) * 180 / math.pi
+                    if angle <= 10:  # Within ±10 degrees
+                        bullet_x = gun_x
+                        bullet_y = gun_y
+                        bullet_z = gun_z
+                        dir_x = to_enemy_x
+                        dir_y = to_enemy_y
+                        bullet_list.append([bullet_x, bullet_y, bullet_z, dir_x, dir_y])
+
+                        break  # Hit only one enemy per shot
+        enemy_hitbox = 50
+        player_hitbox = 20
+        time += 0.02  
+        GRID_LIMIT = 600
+        new_bullet_list = []
+        temp_enemies_list1 = enemies_list[:] 
+        for bullet in bullet_list:
+            x, y, z, dir_x, dir_y = bullet
+            if [x, y, z] in cheat_bullets:
+                cheat_bullets.remove([x, y, z])
+            x += dir_x * bullet_speed
+            y += dir_y * bullet_speed
+            bullet_hit = False
+            for enemy in temp_enemies_list1[:]:  # Iterate over copy to allow safe removal
+                enemy_x, enemy_y, enemy_z = enemy
+                distance = math.sqrt((x - enemy_x)**2 + (y - enemy_y)**2)
+                if distance <= enemy_hitbox:
+                    score+=1
+                    # Bullet hits enemy: remove both and spawn new enemy
+                    temp_enemies_list1.remove(enemy)
+                    bullet_hit = True
+                    # Spawn new enemy at random position
+                    new_x = random.uniform(-590, 590)
+                    new_y = random.uniform(-590, 590)
+                    temp_enemies_list1.append([new_x, new_y, 50])
+                    break  # Stop checking this bullet against other enemies
+            # Add bullet to new list if it didn't hit an enemy and is within grid
+            if not bullet_hit and -GRID_LIMIT <= x <= GRID_LIMIT and -GRID_LIMIT <= y <= GRID_LIMIT:
+                new_bullet_list.append([x, y, z, dir_x, dir_y])
+            elif not bullet_hit:
+                missed += 1
+        bullet_list = new_bullet_list
+        enemies_list = temp_enemies_list1
+        player_x, player_y, _ = player_pos
+        new_enemies_list = []
+        for enemy in enemies_list:
             enemy_x, enemy_y, enemy_z = enemy
-            distance = math.sqrt((x - enemy_x)**2 + (y - enemy_y)**2)
-            if distance <= enemy_hitbox:
-                # Bullet hits enemy: remove both and spawn new enemy
-                temp_enemies_list1.remove(enemy)
-                bullet_hit = True
-                # Spawn new enemy at random position
+            # Calculate distance to player
+            distance = math.sqrt((player_x - enemy_x)**2 + (player_y - enemy_y)**2)
+            # Check for collision
+            if distance > player_hitbox:
+                # Move enemy towards player if no collision
+                dx = player_x - enemy_x
+                dy = player_y - enemy_y
+                if distance > 0:  # Avoid division by zero
+                    dir_x = dx / distance
+                    dir_y = dy / distance
+                    enemy_x += dir_x * enemy_speed
+                    enemy_y += dir_y * enemy_speed
+                    enemy_x = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_x))
+                    enemy_y = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_y))
+                    new_enemies_list.append([enemy_x, enemy_y, enemy_z])
+                    
+            else:
+                # Enemy touches player: remove enemy and spawn a new one
                 new_x = random.uniform(-590, 590)
                 new_y = random.uniform(-590, 590)
-                temp_enemies_list1.append([new_x, new_y, 50])
-                break  # Stop checking this bullet against other enemies
-        # Add bullet to new list if it didn't hit an enemy and is within grid
-        if not bullet_hit and -GRID_LIMIT <= x <= GRID_LIMIT and -GRID_LIMIT <= y <= GRID_LIMIT:
-            new_bullet_list.append([x, y, z, dir_x, dir_y])
-        elif not bullet_hit:
-            missed += 1
-    bullet_list = new_bullet_list
-    enemies_list = temp_enemies_list1
-    player_x, player_y, _ = player_pos
-    new_enemies_list = []
-    for enemy in enemies_list:
-        enemy_x, enemy_y, enemy_z = enemy
-        # Calculate distance to player
-        distance = math.sqrt((player_x - enemy_x)**2 + (player_y - enemy_y)**2)
-        # Check for collision
-        if distance > player_hitbox:
-            # Move enemy towards player if no collision
-            dx = player_x - enemy_x
-            dy = player_y - enemy_y
-            if distance > 0:  # Avoid division by zero
-                dir_x = dx / distance
-                dir_y = dy / distance
-                enemy_x += dir_x * enemy_speed
-                enemy_y += dir_y * enemy_speed
-                enemy_x = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_x))
-                enemy_y = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_y))
-                new_enemies_list.append([enemy_x, enemy_y, enemy_z])
-        else:
-            # Enemy touches player: remove enemy and spawn a new one
-            new_x = random.uniform(-590, 590)
-            new_y = random.uniform(-590, 590)
-            new_enemies_list.append([new_x, new_y, 50])
-            player_life -= 1
-        # If distance <= COLLISION_RADIUS, enemy vanishes (not added to new_enemies_list)
-    enemies_list = new_enemies_list
+                new_enemies_list.append([new_x, new_y, 50])
+                player_life -= 1
+            # If distance <= COLLISION_RADIUS, enemy vanishes (not added to new_enemies_list)
+        enemies_list = new_enemies_list
 
     glutPostRedisplay()
 
 
 def showScreen():
-    global missed, game_over, enemies_list
+    global missed, game_over, enemies_list, player_life, score
     """
     Display function to render the game scene:
     - Clears the screen and sets up the camera.
@@ -480,8 +537,10 @@ def showScreen():
     draw_grid()
 
     # Display game info text at a fixed screen position
-    draw_text(10, 770, f"A Random Fixed Position Text")
-    draw_text(10, 740, f"See how the position and variable change?: {rand_var}")
+    draw_text(10, 770, f"Player Life Remaining: {player_life}")
+    draw_text(10, 740, f"Score: {score}")
+    draw_text(10, 710, f"Player Bullet Missed: {missed}")
+    
 
     
     
