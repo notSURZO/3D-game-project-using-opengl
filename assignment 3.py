@@ -3,6 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math
 import random
+import time
 
 # Camera-related variables
 cheat_shoot_timer = 0
@@ -16,12 +17,11 @@ missed = 0
 player_pos = [0 , 0 , 0]
 
 bullet_list = []
-bullet_speed = 5
-fovY = 120  # Field of view
-# GRID_LENGTH = 600  # Length of grid lines
-rand_var = 423
+bullet_speed = 600 
+fovY = 120 
+
 enemies_list = []
-time = 0.0
+timer = 0.0
 score = 0
 cheat_mode = False
 camera_follow_gun = False
@@ -33,31 +33,32 @@ for i in range(5):
     z = 50
     enemies_list.append([x,y,z])
 
-enemy_speed = 0.1
+enemy_speed = 30
 
 game_over = False
 
 first_person_mode = False
+last_frame = time.time()
+
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glColor3f(1,1,1)
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
     glLoadIdentity()
-    
-    # Set up an orthographic projection that matches window coordinates
-    gluOrtho2D(0, 1000, 0, 800)  # left, right, bottom, top
+
+    gluOrtho2D(0, 1000, 0, 800) 
 
     
     glMatrixMode(GL_MODELVIEW)
     glPushMatrix()
     glLoadIdentity()
     
-    # Draw text at (x, y) in screen coordinates
+
     glRasterPos2f(x, y)
     for ch in text:
         glutBitmapCharacter(font, ord(ch))
     
-    # Restore original projection and modelview matrices
+
     glPopMatrix()
     glMatrixMode(GL_PROJECTION)
     glPopMatrix()
@@ -75,7 +76,7 @@ def draw_grid():
     color = True
     glBegin(GL_QUADS)
     for i in range(13):
-        for i in range(13):
+        for j in range(13):
             if not color :
                 glColor3f(0.7, 0.5, 0.95)
             else:
@@ -132,17 +133,17 @@ def draw_bullets(x,y,z, x_dir, y_dir):
     glTranslatef(x,y,z)
 
     
-    glutSolidCube(10)
+    glutSolidCube(8)
 
     glPopMatrix()
     
     
 def draw_enemies(x,y,z):
-    global time
+    global timer
     glPushMatrix()
     glColor3f(1,0,0)
     glTranslatef(x,y,z)
-    pulse_scale = 0.8 + 0.3 * math.sin(2.0 * time)  # Scale between 0.7 and 1.3
+    pulse_scale = 0.8 + 0.3 * math.sin(2.0 * timer)  # Scale between 0.7 and 1.3
     glScalef(pulse_scale, pulse_scale, pulse_scale)
     gluSphere(gluNewQuadric(), 50, 10, 10)
     
@@ -166,7 +167,7 @@ def draw_player():
     glTranslatef(- 46.1538462,46.1538462, 0)
     glRotatef(player_rotation_angle, 0, 0, 1)
     
-    if missed > 100 or player_life <= -100 :
+    if missed >= 10 or player_life <= 0 :
         glRotatef(-90,1,0,0)
         game_over = True
     
@@ -257,7 +258,7 @@ def draw_player():
 
 
 def keyboardListener(key, x, y):
-    global player_pos, player_rotation_angle, game_over, cheat_mode, camera_follow_gun
+    global first_person_mode, enemy_speed, cheat_bullets, score, timer, enemies_list, fovY, bullet_speed, bullet_list, missed,player_life,player_pos, player_rotation_angle, game_over, cheat_mode, camera_follow_gun, cheat_shoot_timer, camera_pos
     x, y, z = player_pos
     speed = 20
     x_new, y_new = x, y
@@ -301,31 +302,63 @@ def keyboardListener(key, x, y):
         camera_follow_gun = not camera_follow_gun    
 
     # # Reset the game if R key is pressed
-    # if key == b'r':
+    if key == b'r' and game_over == True:
+        cheat_shoot_timer = 0
+        theta = math.pi/2
+        r = 400
+        camera_z = 500
+        camera_pos = (r* math.cos(theta), r * math.sin(theta), camera_z)
+        player_rotation_angle = 0
+        player_life = 5
+        missed = 0
+        player_pos = [0 , 0 , 0]
+
+        bullet_list = []
+        bullet_speed = 600
+        fovY = 120  
+
+        enemies_list = []
+        for i in range(5):
+            x = random.uniform(-590,590)
+            y = random.uniform(-590,590)
+            z = 50
+            enemies_list.append([x,y,z])
+        timer = 0.0
+        score = 0
+        cheat_mode = False
+        camera_follow_gun = False
+        cheat_bullets = []
+        
+        enemy_speed = 30
+
+        game_over = False
+
+        first_person_mode = False      
+        
 
 
 def specialKeyListener(key, x, y):
-    global theta,r,z, camera_pos
+    global theta,r,z, camera_pos, last_frame
 
     
 
     x, y, z = camera_pos
-    
+
     if not first_person_mode :    # Move camera up (UP arrow key)
         if key == GLUT_KEY_UP and z < 1000:
             z += 10
 
         # # Move camera down (DOWN arrow key)
         if key == GLUT_KEY_DOWN and z > 10:
-            z-=10
+            z-= 10
 
         # moving camera left (LEFT arrow key)
         if key == GLUT_KEY_LEFT:
-            theta += 0.05  # Small angle decrement for smooth movement
+            theta -= 0.05 # Small angle decrement for smooth movement
 
         # moving camera right (RIGHT arrow key)
         if key == GLUT_KEY_RIGHT:
-            theta -= 0.05  # Small angle increment for smooth movement
+            theta += 0.05  # Small angle increment for smooth movement
 
         camera_pos = (r* math.cos(theta), r * math.sin(theta), z)
 
@@ -339,16 +372,7 @@ def mouseListener(button, state, x, y):
     """
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         x, y, z = player_pos
-        # Convert player rotation angle to radians
 
-
-        # Account for the player's model offset (same as in draw_player)
-   
-
-        # Base position of the player after offset
-  
-   
-        # Calculate bullet starting position (from the gun's tip)
         bullet_x = x - 46.1538462 + 0 * math.cos(math.radians(player_rotation_angle)) - (-60) * math.sin(math.radians(player_rotation_angle))
         bullet_y = y + 46.1538462  + 0 * math.sin(math.radians(player_rotation_angle)) + (-60) * math.cos(math.radians(player_rotation_angle))
         bullet_z = z + 65
@@ -359,6 +383,7 @@ def mouseListener(button, state, x, y):
 
         # Add bullet to the list
         bullet_list.append([bullet_x, bullet_y, bullet_z, x_dir, y_dir])
+        print("Player Bullet Fired!")
 
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
         first_person_mode = not first_person_mode
@@ -409,16 +434,14 @@ def setupCamera():
 
 
 def idle():
-    global  cheat_bullets, cheat_shoot_timer,player_rotation_angle,game_over, player_life, time, enemies_list, bullet_speed, missed, bullet_list, player_pos, enemy_speed, bullet_hit,score
-    """
-    Idle function that runs continuously:
-    - Triggers screen redraw for real-time updates.
-    """
+    global last_frame, cheat_bullets, cheat_shoot_timer,player_rotation_angle,game_over, player_life, timer, enemies_list, bullet_speed, missed, bullet_list, player_pos, enemy_speed, bullet_hit,score
+    delta_time = time.time() - last_frame
+    last_frame = time.time()
     # Ensure the screen updates with the latest changes
     if not game_over:
-        cheat_shoot_timer += 0.09
+        cheat_shoot_timer += 5.4 * delta_time
         if cheat_mode:  # Rotate player continuously in cheat mode
-            player_rotation_angle += 3
+            player_rotation_angle += 180 * delta_time
             if cheat_shoot_timer >= 0.5:
                 cheat_shoot_timer = 0.0
                 px, py, pz = player_pos
@@ -453,7 +476,7 @@ def idle():
                         break  # Hit only one enemy per shot
         enemy_hitbox = 50
         player_hitbox = 20
-        time += 0.02  
+        timer +=  1.2 * delta_time
         GRID_LIMIT = 600
         new_bullet_list = []
         temp_enemies_list1 = enemies_list[:] 
@@ -461,8 +484,8 @@ def idle():
             x, y, z, dir_x, dir_y = bullet
             if [x, y, z] in cheat_bullets:
                 cheat_bullets.remove([x, y, z])
-            x += dir_x * bullet_speed
-            y += dir_y * bullet_speed
+            x += dir_x * bullet_speed * delta_time
+            y += dir_y * bullet_speed * delta_time
             bullet_hit = False
             for enemy in temp_enemies_list1[:]:  # Iterate over copy to allow safe removal
                 enemy_x, enemy_y, enemy_z = enemy
@@ -482,6 +505,7 @@ def idle():
                 new_bullet_list.append([x, y, z, dir_x, dir_y])
             elif not bullet_hit:
                 missed += 1
+                print( f"Bullet Missed: {missed}")
         bullet_list = new_bullet_list
         enemies_list = temp_enemies_list1
         player_x, player_y, _ = player_pos
@@ -495,11 +519,11 @@ def idle():
                 # Move enemy towards player if no collision
                 dx = player_x - enemy_x
                 dy = player_y - enemy_y
-                if distance > 0:  # Avoid division by zero
+                if distance > 5:  # Avoid division by zero
                     dir_x = dx / distance
                     dir_y = dy / distance
-                    enemy_x += dir_x * enemy_speed
-                    enemy_y += dir_y * enemy_speed
+                    enemy_x += dir_x * enemy_speed * delta_time
+                    enemy_y += dir_y * enemy_speed * delta_time
                     enemy_x = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_x))
                     enemy_y = max(-GRID_LIMIT, min(GRID_LIMIT, enemy_y))
                     new_enemies_list.append([enemy_x, enemy_y, enemy_z])
@@ -510,6 +534,7 @@ def idle():
                 new_y = random.uniform(-590, 590)
                 new_enemies_list.append([new_x, new_y, 50])
                 player_life -= 1
+                print( f"Remaining Player Life: {player_life}")
             # If distance <= COLLISION_RADIUS, enemy vanishes (not added to new_enemies_list)
         enemies_list = new_enemies_list
 
@@ -538,7 +563,7 @@ def showScreen():
 
     # Display game info text at a fixed screen position
     draw_text(10, 770, f"Player Life Remaining: {player_life}")
-    draw_text(10, 740, f"Score: {score}")
+    draw_text(10, 740, f"Game Score: {score}")
     draw_text(10, 710, f"Player Bullet Missed: {missed}")
     
 
@@ -561,6 +586,7 @@ def showScreen():
 # Main function to set up OpenGL window and loop
 def main():
     glutInit()
+    print( f"Remaining Player Life: {player_life}")
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)  # Double buffering, RGB color, depth test
     glutInitWindowSize(1000, 800)  # Window size
     glutInitWindowPosition(0, 0)  # Window position
